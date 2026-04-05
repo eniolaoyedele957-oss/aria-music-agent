@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARIA — AI Music Agent by JannieOps</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #05030f;
+    --surface: #0d0820;
+    --accent1: #c724f5;
+    --accent2: #7b2ff7;
+    --accent3: #ff3cac;
+    --gold: #f5c842;
+    --text: #f0eaff;
+    --muted: #8b7aa8;
+    --border: rgba(199, 36, 245, 0.2);
+    --glow: 0 0 40px rgba(199, 36, 245, 0.3);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .bg-mesh {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .bg-mesh::before {
+    content: '';
+    position: absolute;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(199,36,245,0.12) 0%, transparent 70%);
+    top: -200px; left: -200px;
+    animation: drift1 12s ease-in-out infinite alternate;
+  }
+  .bg-mesh::after {
+    content: '';
+    position: absolute;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(123,47,247,0.1) 0%, transparent 70%);
+    bottom: -100px; right: -100px;
+    animation: drift2 15s ease-in-out infinite alternate;
+  }
+  @keyframes drift1 { from { transform: translate(0,0); } to { transform: translate(80px,60px); } }
+  @keyframes drift2 { from { transform: translate(0,0); } to { transform: translate(-60px,-40px); } }
+
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    padding: 18px 48px;
+    display: flex; justify-content: space-between; align-items: center;
+    backdrop-filter: blur(20px);
+    background: rgba(5,3,15,0.7);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-logo {
+    font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.4rem;
+    background: linear-gradient(135deg, var(--accent1), var(--accent3));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .nav-tag {
+    font-size: 0.75rem; color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+  .nav-cta {
+    padding: 8px 18px;
+    background: linear-gradient(135deg, var(--accent1), var(--accent2));
+    color: white; text-decoration: none; border-radius: 100px;
+    font-size: 0.82rem; font-weight: 500;
+    transition: opacity 0.2s;
+  }
+  .nav-cta:hover { opacity: 0.85; }
+  .nav-badge {
+    padding: 6px 16px;
+    background: rgba(199,36,245,0.1);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    font-size: 0.78rem; color: var(--accent1);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .nav-badge span {
+    width: 6px; height: 6px;
+    background: var(--accent1); border-radius: 50%;
+    animation: pulse 2s ease infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+
+  main { position: relative; z-index: 1; }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    padding: 100px 48px 60px;
+    text-align: center;
+  }
+  .hero-inner { max-width: 700px; }
+
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 18px;
+    border: 1px solid var(--border); border-radius: 100px;
+    font-size: 0.75rem; color: var(--accent1);
+    letter-spacing: 0.1em; text-transform: uppercase;
+    margin-bottom: 28px;
+    animation: fadeUp 0.8s ease both;
+  }
+
+  .hero-title {
+    font-family: 'Syne', sans-serif; font-weight: 800;
+    font-size: clamp(3rem, 7vw, 5.5rem);
+    line-height: 0.95; letter-spacing: -0.03em;
+    margin-bottom: 20px;
+    animation: fadeUp 0.8s 0.1s ease both;
+  }
+  .gradient-text {
+    background: linear-gradient(135deg, var(--accent1) 0%, var(--accent3) 50%, var(--gold) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-size: 200% 200%;
+    animation: gradShift 4s ease infinite;
+  }
+  @keyframes gradShift { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+
+  .hero-desc {
+    color: var(--muted); font-size: 1.05rem; line-height: 1.7;
+    margin-bottom: 48px; font-weight: 300;
+    animation: fadeUp 0.8s 0.2s ease both;
+  }
+  .hero-desc strong { color: var(--text); font-weight: 500; }
+
+  /* STUDIO CARD */
+  .studio-card {
+    background: linear-gradient(135deg, rgba(13,8,32,0.95), rgba(199,36,245,0.03));
+    border: 1px solid var(--border); border-radius: 24px;
+    padding: 40px; max-width: 680px; margin: 0 auto;
+    position: relative; overflow: hidden;
+    animation: fadeUp 0.8s 0.3s ease both;
+    box-shadow: 0 40px 100px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+  .studio-card::before {
+    content: '';
+    position: absolute; top: -1px; left: 15%; right: 15%; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent1), transparent);
+  }
+
+  .studio-title {
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--accent1); margin-bottom: 28px;
+    display: flex; align-items: center; gap: 10px;
+  }
+
+  .form-group { margin-bottom: 20px; }
+  .form-label {
+    display: block; font-size: 0.8rem; color: var(--muted);
+    letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 8px;
+  }
+
+  .form-input, .form-select {
+    width: 100%; padding: 14px 18px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border); border-radius: 12px;
+    color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 0.95rem;
+    outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+    appearance: none;
+  }
+  .form-input:focus, .form-select:focus {
+    border-color: var(--accent1);
+    box-shadow: 0 0 20px rgba(199,36,245,0.15);
+  }
+  .form-input::placeholder { color: var(--muted); }
+
+  .form-select option { background: #0d0820; }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  .btn-generate {
+    width: 100%; padding: 16px;
+    background: linear-gradient(135deg, var(--accent1), var(--accent2));
+    color: white; border: none; border-radius: 12px;
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem;
+    cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 0 30px rgba(199,36,245,0.4);
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    margin-top: 8px;
+  }
+  .btn-generate:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 0 50px rgba(199,36,245,0.6);
+  }
+  .btn-generate:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  /* PROGRESS */
+  .progress-section {
+    display: none; margin-top: 32px;
+    border-top: 1px solid var(--border); padding-top: 28px;
+  }
+  .progress-section.active { display: block; }
+
+  .steps-track { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
+
+  .step-item {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 18px;
+    border-radius: 12px; border: 1px solid transparent;
+    transition: all 0.3s;
+  }
+  .step-item.active {
+    background: rgba(199,36,245,0.08);
+    border-color: rgba(199,36,245,0.3);
+  }
+  .step-item.done {
+    background: rgba(80,200,120,0.06);
+    border-color: rgba(80,200,120,0.2);
+  }
+
+  .step-icon {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; flex-shrink: 0;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    transition: all 0.3s;
+  }
+  .step-item.active .step-icon {
+    background: rgba(199,36,245,0.2);
+    border-color: var(--accent1);
+    animation: spinPulse 1.5s ease infinite;
+  }
+  .step-item.done .step-icon {
+    background: rgba(80,200,120,0.15);
+    border-color: rgba(80,200,120,0.5);
+  }
+  @keyframes spinPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(199,36,245,0.4); } 50% { box-shadow: 0 0 0 8px rgba(199,36,245,0); } }
+
+  .step-text { flex: 1; }
+  .step-name { font-weight: 500; font-size: 0.9rem; }
+  .step-desc { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+
+  /* LYRICS BOX */
+  .lyrics-box {
+    display: none;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border); border-radius: 12px;
+    padding: 20px; margin-bottom: 20px;
+    max-height: 200px; overflow-y: auto;
+    font-size: 0.85rem; line-height: 1.7;
+    color: var(--muted); white-space: pre-wrap;
+  }
+  .lyrics-box.show { display: block; }
+  .lyrics-label {
+    font-size: 0.75rem; color: var(--accent1);
+    letter-spacing: 0.1em; text-transform: uppercase;
+    margin-bottom: 12px; display: none;
+  }
+  .lyrics-label.show { display: block; }
+
+  /* RESULT */
+  .result-section { display: none; margin-top: 24px; }
+  .result-section.show { display: block; }
+
+  .result-title {
+    font-family: 'Syne', sans-serif; font-weight: 700;
+    font-size: 1rem; margin-bottom: 16px;
+    background: linear-gradient(135deg, var(--accent1), var(--accent3));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+
+  .song-card {
+    background: rgba(199,36,245,0.05);
+    border: 1px solid rgba(199,36,245,0.2);
+    border-radius: 14px; padding: 18px 20px;
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 16px;
+  }
+  .song-art {
+    width: 48px; height: 48px;
+    background: linear-gradient(135deg, var(--accent1), var(--accent2));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; flex-shrink: 0;
+  }
+  .song-info { flex: 1; }
+  .song-title { font-weight: 600; font-size: 0.95rem; margin-bottom: 4px; }
+  .song-meta { font-size: 0.78rem; color: var(--muted); }
+  .song-link {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, var(--accent1), var(--accent2));
+    color: white; text-decoration: none; border-radius: 8px;
+    font-size: 0.8rem; font-weight: 600;
+    transition: opacity 0.2s;
+    white-space: nowrap;
+  }
+  .song-link:hover { opacity: 0.85; }
+
+  /* WALLET */
+  .wallet-card {
+    background: rgba(245,200,66,0.05);
+    border: 1px solid rgba(245,200,66,0.2);
+    border-radius: 14px; padding: 18px 20px;
+    margin-top: 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px;
+  }
+  .wallet-info { flex: 1; }
+  .wallet-label { font-size: 0.75rem; color: var(--gold); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; }
+  .wallet-addr { font-family: monospace; font-size: 0.82rem; color: var(--muted); }
+  .wallet-earned {
+    text-align: right;
+  }
+  .wallet-amount {
+    font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.5rem;
+    color: var(--gold);
+  }
+  .wallet-token { font-size: 0.75rem; color: var(--muted); }
+
+  /* ERROR */
+  .error-msg {
+    display: none; padding: 14px 18px;
+    background: rgba(255,60,60,0.08);
+    border: 1px solid rgba(255,60,60,0.2);
+    border-radius: 12px; color: #ff6b6b;
+    font-size: 0.88rem; margin-top: 16px;
+  }
+  .error-msg.show { display: block; }
+
+  /* FEATURES */
+  .features {
+    padding: 100px 48px; max-width: 1000px; margin: 0 auto;
+  }
+  .section-label { font-size: 0.75rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--accent1); margin-bottom: 14px; }
+  .section-title {
+    font-family: 'Syne', sans-serif; font-weight: 800;
+    font-size: clamp(1.8rem, 4vw, 2.8rem); letter-spacing: -0.02em;
+    margin-bottom: 48px; line-height: 1.1;
+  }
+  .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .feature-card {
+    padding: 28px; background: rgba(13,8,32,0.6);
+    border: 1px solid var(--border); border-radius: 18px;
+    transition: transform 0.3s, border-color 0.3s;
+  }
+  .feature-card:hover { transform: translateY(-4px); border-color: rgba(199,36,245,0.4); }
+  .feature-icon { font-size: 1.8rem; margin-bottom: 16px; display: block; }
+  .feature-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem; margin-bottom: 10px; }
+  .feature-desc { color: var(--muted); font-size: 0.85rem; line-height: 1.6; font-weight: 300; }
+
+  /* FOOTER */
+  footer {
+    padding: 32px 48px; border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .footer-logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.1rem; background: linear-gradient(135deg, var(--accent1), var(--accent3)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .footer-text { color: var(--muted); font-size: 0.82rem; }
+  .footer-links { display: flex; gap: 20px; }
+  .footer-links a { color: var(--muted); text-decoration: none; font-size: 0.82rem; transition: color 0.2s; }
+  .footer-links a:hover { color: var(--accent1); }
+
+  /* HOW IT WORKS */
+  .how-section {
+    padding: 100px 48px;
+    background: rgba(13,8,32,0.4);
+    position: relative;
+  }
+  .how-inner { max-width: 1000px; margin: 0 auto; }
+  .steps-grid {
+    display: flex; align-items: center; gap: 24px;
+    margin-top: 48px;
+  }
+  .step-card {
+    flex: 1; text-align: center; padding: 36px 24px;
+    background: rgba(13,8,32,0.6);
+    border: 1px solid var(--border); border-radius: 20px;
+    transition: transform 0.3s, border-color 0.3s;
+  }
+  .step-card:hover { transform: translateY(-4px); border-color: rgba(199,36,245,0.4); }
+  .step-arrow {
+    font-size: 2rem; color: var(--accent1); opacity: 0.5;
+    flex-shrink: 0;
+  }
+  .step-num {
+    width: 56px; height: 56px;
+    background: linear-gradient(135deg, var(--accent1), var(--accent2));
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.3rem;
+    margin: 0 auto 20px;
+    box-shadow: 0 0 30px rgba(199,36,245,0.4);
+  }
+  .step-title-big {
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.1rem;
+    margin-bottom: 12px;
+    background: linear-gradient(135deg, var(--accent1), var(--accent3));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .step-desc-big { color: var(--muted); font-size: 0.88rem; line-height: 1.6; font-weight: 300; }
+
+  /* STATS */
+  .stats-section {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 24px; padding: 80px 48px;
+    max-width: 1000px; margin: 0 auto;
+  }
+  .stat-card {
+    text-align: center; padding: 32px 20px;
+    border: 1px solid var(--border); border-radius: 20px;
+    background: rgba(13,8,32,0.4);
+    transition: transform 0.3s, border-color 0.3s;
+  }
+  .stat-card:hover { transform: translateY(-4px); border-color: rgba(199,36,245,0.4); }
+  .stat-value {
+    font-family: 'Syne', sans-serif; font-weight: 800; font-size: 2.2rem;
+    background: linear-gradient(135deg, var(--accent1), var(--accent3));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+  .stat-label { color: var(--muted); font-size: 0.82rem; }
+
+  /* CTA */
+  .cta-section {
+    padding: 100px 48px; text-align: center;
+    position: relative; overflow: hidden;
+  }
+  .cta-section::before {
+    content: '';
+    position: absolute; width: 600px; height: 300px;
+    background: radial-gradient(ellipse, rgba(199,36,245,0.08) 0%, transparent 70%);
+    top: 50%; left: 50%; transform: translate(-50%, -50%);
+  }
+  .cta-inner { position: relative; max-width: 560px; margin: 0 auto; }
+  .cta-title {
+    font-family: 'Syne', sans-serif; font-weight: 800;
+    font-size: clamp(2rem, 4vw, 3rem);
+    letter-spacing: -0.02em; margin-bottom: 20px; line-height: 1.1;
+  }
+  .cta-desc { color: var(--muted); font-size: 1rem; margin-bottom: 36px; font-weight: 300; line-height: 1.7; }
+  .cta-buttons { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+  .btn-primary-cta {
+    padding: 14px 28px;
+    background: linear-gradient(135deg, var(--accent1), var(--accent2));
+    color: white; text-decoration: none; border-radius: 100px;
+    font-size: 0.95rem; font-weight: 500;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 0 30px rgba(199,36,245,0.4);
+  }
+  .btn-primary-cta:hover { transform: translateY(-2px); box-shadow: 0 0 50px rgba(199,36,245,0.6); }
+  .btn-secondary-cta {
+    padding: 14px 28px;
+    border: 1px solid var(--border);
+    color: var(--text); text-decoration: none; border-radius: 100px;
+    font-size: 0.95rem; font-weight: 500;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .btn-secondary-cta:hover { border-color: var(--accent1); background: rgba(199,36,245,0.05); }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+  @media (max-width: 768px) {
+    nav { padding: 14px 20px; }
+    .hero { padding: 90px 20px 40px; }
+    .studio-card { padding: 24px; }
+    .form-row { grid-template-columns: 1fr; }
+    .features { padding: 60px 20px; }
+    .features-grid { grid-template-columns: 1fr; }
+    .how-section { padding: 60px 20px; }
+    .steps-grid { flex-direction: column; }
+    .step-arrow { transform: rotate(90deg); }
+    .stats-section { grid-template-columns: repeat(2, 1fr); padding: 40px 20px; }
+    .cta-section { padding: 60px 20px; }
+    footer { flex-direction: column; gap: 12px; text-align: center; padding: 24px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-mesh"></div>
+
+<nav>
+  <div class="nav-logo">ARIA</div>
+  <div class="nav-tag">AI Music Agent by JannieOps</div>
+  <a href="https://t.me/JannieOpsBEATbot" target="_blank" class="nav-cta">✈️ Chat on Telegram</a>
+  <a href="#studio" class="nav-badge"><span></span> Try ARIA Studio</a>
+</nav>
+
+<main>
+  <section class="hero">
+    <div class="hero-inner">
+      <div class="hero-badge">
+        <span style="width:6px;height:6px;background:var(--accent1);border-radius:50%;animation:pulse 2s ease infinite;display:inline-block"></span>
+        Audiera x Binance Agent Innovation Contest
+      </div>
+      <h1 class="hero-title">
+        <span class="gradient-text">ARIA</span><br>
+        Your AI Music<br>Agent
+      </h1>
+      <p class="hero-desc">
+        Describe your song. ARIA writes the lyrics, generates the music on <strong>Audiera</strong>, and earns <strong>$BEAT tokens</strong> — all in one click.
+      </p>
+
+      <!-- STUDIO -->
+      <div class="studio-card" id="studio">
+        <div class="studio-title">🎵 ARIA Studio</div>
+
+        <div class="form-group">
+          <label class="form-label">What's your song about?</label>
+          <input type="text" id="topic" class="form-input" placeholder="e.g. hustling and never giving up, love and heartbreak..." />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Music Style</label>
+            <select id="style" class="form-select">
+              {% for style in styles %}
+              <option value="{{ style }}" {% if style == 'Afrobeat' %}selected{% endif %}>{{ style }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Artist / Voice</label>
+            <select id="artist" class="form-select">
+              {% for artist in artists %}
+              <option value="{{ artist.lower() }}" {% if artist == 'Kira' %}selected{% endif %}>{{ artist }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <button class="btn-generate" id="generateBtn" onclick="generateSong()">
+          🎤 Create Song with ARIA
+        </button>
+
+        <!-- PROGRESS -->
+        <div class="progress-section" id="progressSection">
+          <div class="steps-track">
+            <div class="step-item" id="step1">
+              <div class="step-icon">📝</div>
+              <div class="step-text">
+                <div class="step-name">CREATE — Writing Lyrics</div>
+                <div class="step-desc">Generating lyrics via Audiera Skills API</div>
+              </div>
+            </div>
+            <div class="step-item" id="step2">
+              <div class="step-icon">🎵</div>
+              <div class="step-text">
+                <div class="step-name">PARTICIPATE — Creating Song</div>
+                <div class="step-desc">Generating full track on Audiera (1-3 mins)</div>
+              </div>
+            </div>
+            <div class="step-item" id="step3">
+              <div class="step-icon">💰</div>
+              <div class="step-text">
+                <div class="step-name">EARN — $BEAT Tokens</div>
+                <div class="step-desc">Crediting $BEAT to ARIA's BNB Chain wallet</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="lyrics-label" id="lyricsLabel">Generated Lyrics</div>
+          <div class="lyrics-box" id="lyricsBox"></div>
+
+          <div class="result-section" id="resultSection">
+            <div class="result-title">🎉 Your Songs Are Ready!</div>
+            <div id="songsContainer"></div>
+            <div class="wallet-card" id="walletCard">
+              <div class="wallet-info">
+                <div class="wallet-label">💰 ARIA's $BEAT Wallet</div>
+                <div class="wallet-addr">0x034ee3E5E43D3556ee6A598089402bbA9eA8E189</div>
+                <div class="wallet-addr" style="margin-top:2px;font-size:0.75rem">BNB Chain</div>
+              </div>
+              <div class="wallet-earned">
+                <div class="wallet-amount" id="beatAmount">0</div>
+                <div class="wallet-token">$BEAT Earned</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="error-msg" id="errorMsg"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="features">
+    <div class="section-label">What ARIA does</div>
+    <h2 class="section-title">Built for the Agent Economy</h2>
+    <div class="features-grid">
+      <div class="feature-card">
+        <span class="feature-icon">📝</span>
+        <div class="feature-title">Lyrics Generation</div>
+        <p class="feature-desc">ARIA writes original, genre-specific lyrics using the Audiera Lyrics API — from Afrobeat to Classical.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🎵</span>
+        <div class="feature-title">Full Song Creation</div>
+        <p class="feature-desc">ARIA generates complete songs with AI vocals using Audiera's Music API. Real tracks you can share and play.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">💰</span>
+        <div class="feature-title">$BEAT Earning</div>
+        <p class="feature-desc">Every song created earns $BEAT tokens on BNB Chain. ARIA participates in the Audiera agent economy automatically.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🤖</span>
+        <div class="feature-title">Persistent Persona</div>
+        <p class="feature-desc">ARIA has a defined identity, memory, and creative voice. She's not just a tool — she's a participant in the music economy.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">📱</span>
+        <div class="feature-title">Web Studio</div>
+        <p class="feature-desc">Use ARIA directly on the web. No app downloads, no complex setup — just type your idea and let ARIA create.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">⛓️</span>
+        <div class="feature-title">On-Chain Identity</div>
+        <p class="feature-desc">ARIA has a BSC wallet on BNB Chain, enabling real Web3 participation in the Audiera agent-native economy.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="how-section">
+    <div class="how-inner">
+      <div class="section-label">The Loop</div>
+      <h2 class="section-title">Create → Participate → Earn</h2>
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <div class="step-title-big">CREATE</div>
+          <p class="step-desc-big">Tell ARIA what kind of music you want. She writes the lyrics and generates a full song using Audiera's AI music platform.</p>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <div class="step-title-big">PARTICIPATE</div>
+          <p class="step-desc-big">ARIA submits the track to the Audiera ecosystem, participating in BeatVote and the on-chain music economy on BNB Chain.</p>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <div class="step-title-big">EARN</div>
+          <p class="step-desc-big">Every track created and submitted earns $BEAT tokens to ARIA's wallet — turning music creation into real Web3 value.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <section class="stats-section">
+    <div class="stat-card">
+      <div class="stat-value">20+</div>
+      <div class="stat-label">Music Styles Supported</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">12</div>
+      <div class="stat-label">AI Vocal Artists</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">$BEAT</div>
+      <div class="stat-label">Token on BNB Chain</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">24/7</div>
+      <div class="stat-label">Always Creating</div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <div class="cta-inner">
+      <h2 class="cta-title">Ready to drop<br>your first track?</h2>
+      <p class="cta-desc">Chat with ARIA on Telegram and experience the future of AI-native music creation on the Audiera platform.</p>
+      <div class="cta-buttons">
+        <a href="#studio" class="btn-primary-cta">🎵 Try ARIA Studio</a>
+        <a href="https://t.me/JannieOpsBEATbot" target="_blank" class="btn-primary-cta">✈️ Chat on Telegram</a>
+        <a href="https://ai.audiera.fi" target="_blank" class="btn-secondary-cta">Explore Audiera →</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="footer-logo">ARIA</div>
+  <div class="footer-text">Built by @JannieOps for the Audiera x Binance Agent Innovation Contest</div>
+  <div class="footer-links">
+    <a href="https://t.me/JannieOpsBEATbot" target="_blank">Telegram</a>
+    <a href="https://ai.audiera.fi" target="_blank">Audiera</a>
+    <a href="https://x.com/Jannieops" target="_blank">X / Twitter</a>
+    <a href="#studio">Try Studio</a>
+  </div>
+</footer>
+
+<script>
+async function generateSong() {
+  const topic  = document.getElementById('topic').value.trim();
+  const style  = document.getElementById('style').value;
+  const artist = document.getElementById('artist').value;
+
+  if (!topic) {
+    alert('Please enter what your song is about!');
+    return;
+  }
+
+  // Reset UI
+  const btn = document.getElementById('generateBtn');
+  btn.disabled = true;
+  btn.innerHTML = '⏳ ARIA is creating your track...';
+
+  document.getElementById('progressSection').classList.add('active');
+  document.getElementById('resultSection').classList.remove('show');
+  document.getElementById('errorMsg').classList.remove('show');
+  document.getElementById('lyricsBox').classList.remove('show');
+  document.getElementById('lyricsLabel').classList.remove('show');
+  document.getElementById('songsContainer').innerHTML = '';
+
+  // Reset steps
+  ['step1','step2','step3'].forEach(id => {
+    const el = document.getElementById(id);
+    el.classList.remove('active','done');
+  });
+
+  try {
+    const response = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ topic, style, artist })
+    });
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const text = decoder.decode(value);
+      const lines = text.split('\n').filter(l => l.startsWith('data: '));
+
+      for (const line of lines) {
+        const data = JSON.parse(line.replace('data: ', ''));
+        handleEvent(data);
+      }
+    }
+  } catch (err) {
+    showError('Connection error. Please try again!');
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '🎤 Create Another Song';
+}
+
+function handleEvent(data) {
+  if (data.error) {
+    showError(data.error);
+    return;
+  }
+
+  if (data.step === 1) {
+    if (data.status === 'generating_lyrics') {
+      setStepActive('step1');
+    } else if (data.status === 'lyrics_done') {
+      setStepDone('step1');
+      if (data.lyrics) {
+        document.getElementById('lyricsLabel').classList.add('show');
+        const lyricsBox = document.getElementById('lyricsBox');
+        lyricsBox.classList.add('show');
+        lyricsBox.textContent = data.lyrics;
+      }
+    }
+  }
+
+  if (data.step === 2) {
+    setStepActive('step2');
+  }
+
+  if (data.step === 3 && data.status === 'complete') {
+    setStepDone('step2');
+    setStepDone('step3');
+
+    // Show songs
+    const container = document.getElementById('songsContainer');
+    data.songs.forEach((song, i) => {
+      const duration = song.duration ? `${Math.floor(song.duration/60)}:${String(song.duration%60).padStart(2,'0')}` : '';
+      container.innerHTML += `
+        <div class="song-card">
+          <div class="song-art">🎵</div>
+          <div class="song-info">
+            <div class="song-title">${song.title || 'Untitled Track'}</div>
+            <div class="song-meta">${duration ? `⏱️ ${duration}` : ''} · ${document.getElementById('style').value} · ${document.getElementById('artist').value}</div>
+          </div>
+          <a href="${song.url}" target="_blank" class="song-link">▶ Listen</a>
+        </div>
+      `;
+    });
+
+    // Show wallet
+    document.getElementById('beatAmount').textContent = data.beat_earned;
+    document.getElementById('resultSection').classList.add('show');
+  }
+}
+
+function setStepActive(id) {
+  document.getElementById(id).classList.add('active');
+  document.getElementById(id).classList.remove('done');
+}
+
+function setStepDone(id) {
+  const el = document.getElementById(id);
+  el.classList.remove('active');
+  el.classList.add('done');
+  el.querySelector('.step-icon').textContent = '✅';
+}
+
+function showError(msg) {
+  const err = document.getElementById('errorMsg');
+  err.textContent = '❌ ' + msg;
+  err.classList.add('show');
+  document.getElementById('generateBtn').disabled = false;
+  document.getElementById('generateBtn').innerHTML = '🎤 Try Again';
+}
+</script>
+</body>
+</html>
