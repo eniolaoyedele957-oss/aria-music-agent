@@ -702,15 +702,46 @@
 </footer>
 
 <script>
+// Artists mapping
+const ARTISTS = {
+  "kira": "osipvytdvxuzci9pn2nz1",
+  "ray": "jyjcnj6t3arzzb5dnzk4p",
+  "jason": "i137z0bj0cwsbzrzd8m0c",
+  "dylan": "xa6h1wjowcyvo1r87x1np",
+  "rhea": "yinjs025l733tttxgy2w5",
+  "talia": "hcqa005jz02ikis7xt2q4",
+  "leo": "udst8rsngyccqh3e2y80a",
+  "briana": "tzuww7dbsh4enwifaptfl"
+};
+
+let AUDIERA_KEY = '';
+let beatEarned = 0;
+
+// Fetch config from server
+async function getConfig() {
+  const res = await fetch('/api/config');
+  const data = await res.json();
+  AUDIERA_KEY = data.audiera_api_key;
+}
+
+// Call on page load
+getConfig();
+
 async function generateSong() {
   const topic  = document.getElementById('topic').value.trim();
   const style  = document.getElementById('style').value;
-  const artist = document.getElementById('artist').value;
+  const artist = document.getElementById('artist').value.toLowerCase();
 
   if (!topic) {
     alert('Please enter what your song is about!');
     return;
   }
+
+  if (!AUDIERA_KEY) {
+    await getConfig();
+  }
+
+  const artistId = ARTISTS[artist] || ARTISTS['kira'];
 
   // Reset UI
   const btn = document.getElementById('generateBtn');
@@ -724,90 +755,117 @@ async function generateSong() {
   document.getElementById('lyricsLabel').classList.remove('show');
   document.getElementById('songsContainer').innerHTML = '';
 
-  // Reset steps
   ['step1','step2','step3'].forEach(id => {
-    const el = document.getElementById(id);
-    el.classList.remove('active','done');
+    document.getElementById(id).classList.remove('active','done');
   });
 
   try {
-    const response = await fetch('/api/generate', {
+    // STEP 1: Generate Lyrics
+    setStepActive('step1');
+
+    const lyricsRes = await fetch('https://ai.audiera.fi/api/skills/lyrics', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ topic, style, artist })
+      headers: {
+        'Authorization': `Bearer ${AUDIERA_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ inspiration: topic, styles: [style] })
     });
 
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
+    const lyricsData = await lyricsRes.json();
+    let lyrics = '';
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      const text = decoder.decode(value);
-      const lines = text.split('\n').filter(l => l.startsWith('data: '));
-
-      for (const line of lines) {
-        const data = JSON.parse(line.replace('data: ', ''));
-        handleEvent(data);
-      }
+    if (lyricsData.success && lyricsData.data && lyricsData.data.lyrics) {
+      lyrics = lyricsData.data.lyrics;
+    } else {
+      showError('Could not generate lyrics. Please try again!');
+      btn.disabled = false;
+      btn.innerHTML = '🎤 Try Again';
+      return;
     }
-  } catch (err) {
-    showError('Connection error. Please try again!');
-  }
 
-  btn.disabled = false;
-  btn.innerHTML = '🎤 Create Another Song';
-}
+    setStepDone('step1');
+    document.getElementById('lyricsLabel').classList.add('show');
+    const lyricsBox = document.getElementById('lyricsBox');
+    lyricsBox.classList.add('show');
+    lyricsBox.textContent = lyrics;
 
-function handleEvent(data) {
-  if (data.error) {
-    showError(data.error);
-    return;
-  }
-
-  if (data.step === 1) {
-    if (data.status === 'generating_lyrics') {
-      setStepActive('step1');
-    } else if (data.status === 'lyrics_done') {
-      setStepDone('step1');
-      if (data.lyrics) {
-        document.getElementById('lyricsLabel').classList.add('show');
-        const lyricsBox = document.getElementById('lyricsBox');
-        lyricsBox.classList.add('show');
-        lyricsBox.textContent = data.lyrics;
-      }
-    }
-  }
-
-  if (data.step === 2) {
+    // STEP 2: Create Song
     setStepActive('step2');
-  }
 
-  if (data.step === 3 && data.status === 'complete') {
+    const musicRes = await fetch('https://ai.audiera.fi/api/skills/music', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${AUDIERA_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ lyrics, styles: [style], artistId })
+    });
+
+    const musicData = await musicRes.json();
+
+    if (!musicData.success) {
+      showError('Music creation failed: ' + (musicData.message || 'Unknown error'));
+      btn.disabled = false;
+      btn.innerHTML = '🎤 Try Again';
+      return;
+    }
+
+    const taskId = musicData.data.taskId;
+
+    // Poll for completion
+    let songs = null;
+    for (let i = 0; i < 120; i++) {
+      await new Promise(r => setTimeout(r, 5000));
+
+      const pollRes = await fetch(`https://ai.audiera.fi/api/skills/music/${taskId}`, {
+        headers: { 'Authorization': `Bearer ${AUDIERA_KEY}` }
+      });
+
+      const pollData = await pollRes.json();
+
+      if (pollData.success && pollData.data && pollData.data.status === 'completed') {
+        songs = pollData.data.musics || (pollData.data.music ? [pollData.data.music] : null);
+        break;
+      }
+    }
+
+    if (!songs) {
+      showError('Song generation timed out. Please try again!');
+      btn.disabled = false;
+      btn.innerHTML = '🎤 Try Again';
+      return;
+    }
+
+    // STEP 3: Earn
     setStepDone('step2');
     setStepDone('step3');
+    beatEarned += songs.length;
 
-    // Show songs
     const container = document.getElementById('songsContainer');
-    data.songs.forEach((song, i) => {
+    songs.forEach(song => {
       const duration = song.duration ? `${Math.floor(song.duration/60)}:${String(song.duration%60).padStart(2,'0')}` : '';
       container.innerHTML += `
         <div class="song-card">
           <div class="song-art">🎵</div>
           <div class="song-info">
             <div class="song-title">${song.title || 'Untitled Track'}</div>
-            <div class="song-meta">${duration ? `⏱️ ${duration}` : ''} · ${document.getElementById('style').value} · ${document.getElementById('artist').value}</div>
+            <div class="song-meta">${duration ? `⏱️ ${duration}` : ''} · ${style} · ${artist}</div>
           </div>
           <a href="${song.url}" target="_blank" class="song-link">▶ Listen</a>
         </div>
       `;
     });
 
-    // Show wallet
-    document.getElementById('beatAmount').textContent = data.beat_earned;
+    document.getElementById('beatAmount').textContent = beatEarned;
     document.getElementById('resultSection').classList.add('show');
+
+  } catch (err) {
+    showError('Error: ' + err.message);
   }
+
+  btn.disabled = false;
+  btn.innerHTML = '🎤 Create Another Song';
 }
 
 function setStepActive(id) {

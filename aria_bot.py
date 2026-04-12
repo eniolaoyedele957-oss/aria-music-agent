@@ -37,7 +37,7 @@ load_dotenv()
 # ─────────────────────────────────────────
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "8783281247:AAGrDzZgI7JzTtTBCjHhdlR_yQBOC3ihT3s")
-AUDIERA_API_KEY    = os.getenv("AUDIERA_API_KEY", "sk_audiera_ea53pis0r3kel7vtv4af328e93k9p4mc")
+AUDIERA_API_KEY    = os.getenv("AUDIERA_API_KEY", "sk_audiera_un3w4d29ccex1tyftott8fs8130qbjfx")
 WALLET_ADDRESS     = "0x034ee3E5E43D3556ee6A598089402bbA9eA8E189"
 
 # Session storage — tracks conversation state per user

@@ -19,7 +19,7 @@ app = Flask(__name__)
 # CONFIGURATION
 # ─────────────────────────────────────────
 
-AUDIERA_API_KEY = os.getenv("AUDIERA_API_KEY", "sk_audiera_ea53pis0r3kel7vtv4af328e93k9p4mc")
+AUDIERA_API_KEY = os.getenv("AUDIERA_API_KEY", "sk_audiera_un3w4d29ccex1tyftott8fs8130qbjfx")
 WALLET_ADDRESS  = "0x034ee3E5E43D3556ee6A598089402bbA9eA8E189"
 
 AI_PROVIDERS = [
@@ -197,6 +197,16 @@ def index():
     return render_template("index.html",
                            styles=STYLES,
                            artists=[a.title() for a in ARTISTS.keys()])
+
+
+@app.route("/api/config")
+def config():
+    return jsonify({
+        "audiera_api_key": AUDIERA_API_KEY,
+        "wallet": WALLET_ADDRESS,
+        "artists": ARTISTS,
+        "styles": STYLES
+    })
 
 
 @app.route("/api/generate", methods=["POST"])
