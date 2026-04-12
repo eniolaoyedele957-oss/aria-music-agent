@@ -5,6 +5,7 @@ Flask backend that powers the ARIA website
 """
 
 from flask import Flask, render_template, request, jsonify, Response, stream_with_context
+from flask_cors import CORS
 import requests
 import time
 import os
@@ -14,6 +15,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
+CORS(app)
 
 # ─────────────────────────────────────────
 # CONFIGURATION
@@ -207,6 +209,52 @@ def config():
         "artists": ARTISTS,
         "styles": STYLES
     })
+
+
+@app.route("/proxy/lyrics", methods=["POST"])
+def proxy_lyrics():
+    """Proxy lyrics request to Audiera"""
+    data = request.json
+    try:
+        resp = requests.post(
+            "https://ai.audiera.fi/api/skills/lyrics",
+            headers={"Authorization": f"Bearer {AUDIERA_API_KEY}", "Content-Type": "application/json"},
+            json=data,
+            timeout=30
+        )
+        return jsonify(resp.json()), resp.status_code
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route("/proxy/music", methods=["POST"])
+def proxy_music():
+    """Proxy music creation request to Audiera"""
+    data = request.json
+    try:
+        resp = requests.post(
+            "https://ai.audiera.fi/api/skills/music",
+            headers={"Authorization": f"Bearer {AUDIERA_API_KEY}", "Content-Type": "application/json"},
+            json=data,
+            timeout=30
+        )
+        return jsonify(resp.json()), resp.status_code
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route("/proxy/music/<task_id>", methods=["GET"])
+def proxy_music_poll(task_id):
+    """Proxy music polling request to Audiera"""
+    try:
+        resp = requests.get(
+            f"https://ai.audiera.fi/api/skills/music/{task_id}",
+            headers={"Authorization": f"Bearer {AUDIERA_API_KEY}"},
+            timeout=30
+        )
+        return jsonify(resp.json()), resp.status_code
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
 
 
 @app.route("/api/generate", methods=["POST"])

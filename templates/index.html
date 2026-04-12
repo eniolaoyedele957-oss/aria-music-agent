@@ -763,10 +763,9 @@ async function generateSong() {
     // STEP 1: Generate Lyrics
     setStepActive('step1');
 
-    const lyricsRes = await fetch('https://ai.audiera.fi/api/skills/lyrics', {
+    const lyricsRes = await fetch('/proxy/lyrics', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${AUDIERA_KEY}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ inspiration: topic, styles: [style] })
@@ -793,10 +792,9 @@ async function generateSong() {
     // STEP 2: Create Song
     setStepActive('step2');
 
-    const musicRes = await fetch('https://ai.audiera.fi/api/skills/music', {
+    const musicRes = await fetch('/proxy/music', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${AUDIERA_KEY}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ lyrics, styles: [style], artistId })
@@ -818,8 +816,8 @@ async function generateSong() {
     for (let i = 0; i < 120; i++) {
       await new Promise(r => setTimeout(r, 5000));
 
-      const pollRes = await fetch(`https://ai.audiera.fi/api/skills/music/${taskId}`, {
-        headers: { 'Authorization': `Bearer ${AUDIERA_KEY}` }
+      const pollRes = await fetch(`/proxy/music/${taskId}`, {
+        headers: { 'Content-Type': 'application/json' }
       });
 
       const pollData = await pollRes.json();
